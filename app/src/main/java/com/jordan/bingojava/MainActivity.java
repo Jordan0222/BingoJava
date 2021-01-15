@@ -1,6 +1,7 @@
 package com.jordan.bingojava;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.Group;
@@ -8,6 +9,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -26,6 +28,7 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
@@ -39,8 +42,13 @@ public class MainActivity extends AppCompatActivity implements FirebaseAuth.Auth
     private TextView nickText;
     private ImageView avatar;
     private Group groupAvatars;
-    int[] avatarIds = {R.drawable.avatar_0, R.drawable.avatar_1, R.drawable.avatar_2, R.drawable.avatar_3,
-            R.drawable.avatar_4,R.drawable.avatar_5,R.drawable.avatar_6};
+    int[] avatarIds = {R.drawable.avatar_0,
+            R.drawable.avatar_1,
+            R.drawable.avatar_2,
+            R.drawable.avatar_3,
+            R.drawable.avatar_4,
+            R.drawable.avatar_5,
+            R.drawable.avatar_6};
     private FloatingActionButton fab;
     private Member member;
     private RecyclerView recycler;
@@ -103,11 +111,26 @@ public class MainActivity extends AppCompatActivity implements FirebaseAuth.Auth
 
                                 FirebaseDatabase.getInstance()
                                         .getReference("rooms")
-                                        .push().setValue(room);
+                                        .push().setValue(room, new DatabaseReference.CompletionListener() {
+                                    @Override
+                                    public void onComplete(@Nullable DatabaseError error,
+                                                           @NonNull DatabaseReference ref) {
+                                        if (error == null) {
+                                            String roomId = ref.getKey();
+                                            Intent bingo = new Intent(MainActivity.this,
+                                                    BingoActivity.class);
+                                            bingo.putExtra("ROOM_ID", roomId);
+                                            bingo.putExtra("IS_CREATOR", true);
+                                            startActivity(bingo);
+                                        }
+                                    }
+                                });
                             }
-                        }).show();
+                        }).setNeutralButton("Cancel", null)
+                        .show();
             }
         });
+
         // RecyclerView
         recycler = findViewById(R.id.recycler);
         recycler.setHasFixedSize(true);
@@ -141,8 +164,10 @@ public class MainActivity extends AppCompatActivity implements FirebaseAuth.Auth
     }
 
     public class RoomHolder extends RecyclerView.ViewHolder {
+
         ImageView image;
         TextView titleText;
+
         public RoomHolder(@NonNull View itemView) {
             super(itemView);
             image = itemView.findViewById(R.id.room_image);
@@ -200,6 +225,7 @@ public class MainActivity extends AppCompatActivity implements FirebaseAuth.Auth
                     .child(user.getUid())
                     .child("displayName")
                     .setValue(displayName);
+
             FirebaseDatabase.getInstance()
                     .getReference("users")
                     .child(user.getUid())
